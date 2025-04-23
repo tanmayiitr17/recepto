@@ -1,0 +1,255 @@
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import "./FiltersPanel.css";
+import { Filters, filterOptions, Location, ScoreRange } from "./optimizedFilterUtils";
+
+interface FiltersPanelProps {
+  selectedFilters: Filters;
+  onApply: (filters: Filters) => void;
+  onCancel: () => void;
+}
+
+const FiltersPanelOptimized: React.FC<FiltersPanelProps> = ({
+  selectedFilters,
+  onApply,
+  onCancel,
+}) => {
+  const [activeFilterTab, setActiveFilterTab] = useState<keyof Filters>("location");
+  const [currentFilters, setCurrentFilters] = useState<Filters>(selectedFilters);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    setCurrentFilters(selectedFilters);
+    setSearchQuery("");
+  }, [selectedFilters]);
+
+  useEffect(() => {
+    setSearchQuery("");
+  }, [activeFilterTab]);
+
+  const handleLocationCheckboxChange = useCallback((value: Location) => {
+    const currentLocations = currentFilters.location || [];
+    const newLocations = currentLocations.includes(value)
+      ? currentLocations.filter((loc) => loc !== value)
+      : [...currentLocations, value];
+    setCurrentFilters({ ...currentFilters, location: newLocations });
+  }, [currentFilters]);
+
+  const handleScoreChange = useCallback((value: ScoreRange | null) => {
+    setCurrentFilters({ ...currentFilters, scoreRange: value });
+  }, [currentFilters]);
+
+  const handleApply = useCallback(() => {
+    onApply(currentFilters);
+  }, [currentFilters, onApply]);
+
+  const getAppliedCount = useCallback((filterType: keyof Filters): number => {
+    if (filterType === "location") {
+      return currentFilters.location?.length || 0;
+    }
+    if (filterType === "scoreRange") {
+      return currentFilters.scoreRange !== null ? 1 : 0;
+    }
+    return 0;
+  }, [currentFilters]);
+
+  const totalAppliedCount = useMemo(() => 
+    getAppliedCount("location") + getAppliedCount("scoreRange"),
+    [getAppliedCount]
+  );
+
+  const filteredLocations = useMemo(() => 
+    filterOptions.location.filter((option) =>
+      option.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    [searchQuery]
+  );
+
+  const locationTabContent = useMemo(() => (
+    <div className="filter-section">
+      <h5>
+        Location{" "}
+        {getAppliedCount("location") > 0 && (
+          <span className="applied-count-header">
+            {getAppliedCount("location")} applied
+          </span>
+        )}
+      </h5>
+      <div className="filter-search">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
+            stroke="#8F9BB3"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M21 21L16.65 16.65"
+            stroke="#8F9BB3"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <input
+          type="text"
+          placeholder="Search"
+          className="filter-search-input form-control"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <button
+            className="filter-search-clear"
+            onClick={() => setSearchQuery("")}>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M18 6L6 18"
+                stroke="#8F9BB3"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M6 6L18 18"
+                stroke="#8F9BB3"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        )}
+      </div>
+      <div className="filter-options-grid">
+        {filteredLocations.map((option) => (
+          <div
+            key={option.id}
+            className="filter-option checkbox-option">
+            <input
+              type="checkbox"
+              id={`loc-${option.id}`}
+              checked={
+                currentFilters.location?.includes(option.id as Location) || false
+              }
+              onChange={() => handleLocationCheckboxChange(option.id as Location)}
+            />
+            <label htmlFor={`loc-${option.id}`}>{option.name}</label>
+          </div>
+        ))}
+        {filteredLocations.length === 0 && (
+          <p className="text-sm text-gray">
+            No locations match your search.
+          </p>
+        )}
+      </div>
+    </div>
+  ), [searchQuery, currentFilters.location, getAppliedCount, handleLocationCheckboxChange, filteredLocations]);
+
+  const scoreTabContent = useMemo(() => (
+    <div className="filter-section">
+      <h5>
+        Score{" "}
+        {getAppliedCount("scoreRange") > 0 && (
+          <span className="applied-count-header">
+            {getAppliedCount("scoreRange")} applied
+          </span>
+        )}
+      </h5>
+      <p className="text-sm text-gray mb-2">Select score range:</p>
+      <div className="filter-options-list">
+        <div className="filter-option radio-option">
+          <input
+            type="radio"
+            id="score-any"
+            name="scoreRange"
+            checked={currentFilters.scoreRange === null}
+            onChange={() => handleScoreChange(null)}
+          />
+          <label htmlFor="score-any">Any Score</label>
+        </div>
+        {filterOptions.scoreRange.map((option) => (
+          <div key={option.id} className="filter-option radio-option">
+            <input
+              type="radio"
+              id={`score-${option.id}`}
+              name="scoreRange"
+              value={option.id}
+              checked={currentFilters.scoreRange === option.id}
+              onChange={() => handleScoreChange(option.id as ScoreRange)}
+            />
+            <label htmlFor={`score-${option.id}`}>{option.name}</label>
+          </div>
+        ))}
+      </div>
+    </div>
+  ), [currentFilters.scoreRange, getAppliedCount, handleScoreChange]);
+
+  const filterTabs = useMemo(() => (
+    <div className="filters-sidebar">
+      <button
+        className={`filter-tab ${
+          activeFilterTab === "location" ? "active" : ""
+        }`}
+        onClick={() => setActiveFilterTab("location")}>
+        Location{" "}
+        {getAppliedCount("location") > 0 && (
+          <span className="applied-count">
+            {getAppliedCount("location")}
+          </span>
+        )}
+      </button>
+      <button
+        className={`filter-tab ${
+          activeFilterTab === "scoreRange" ? "active" : ""
+        }`}
+        onClick={() => setActiveFilterTab("scoreRange")}>
+        Score{" "}
+        {getAppliedCount("scoreRange") > 0 && (
+          <span className="applied-count">
+            {getAppliedCount("scoreRange")}
+          </span>
+        )}
+      </button>
+    </div>
+  ), [activeFilterTab, getAppliedCount]);
+
+  return (
+    <div className="filters-panel card">
+      <div className="filters-header">
+        <h4>Filters</h4>
+        {totalAppliedCount > 0 && (
+          <span className="filters-applied-total">
+            {totalAppliedCount} applied
+          </span>
+        )}
+      </div>
+      <div className="filters-body">
+        {filterTabs}
+        <div className="filters-content">
+          {activeFilterTab === "location" ? locationTabContent : scoreTabContent}
+        </div>
+      </div>
+      <div className="filters-footer">
+        <button className="btn btn-secondary" onClick={onCancel}>
+          Cancel
+        </button>
+        <button className="btn btn-primary" onClick={handleApply}>
+          Apply Filters
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default React.memo(FiltersPanelOptimized); 

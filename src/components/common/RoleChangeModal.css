@@ -1,0 +1,21 @@
+.role-change-modal {
+  max-width: 400px;
+  text-align: center;
+}
+
+.role-change-modal h4 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.role-change-modal p {
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--dark-gray);
+}
+
+.role-change-modal .modal-actions {
+  justify-content: center;
+} 
